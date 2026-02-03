@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Jet Sim - F15 Visible Complete</title>
+<title>Jet Sim - F15 Fully Enhanced</title>
 <style>
-  body { margin:0; overflow:hidden; background:#87ceeb; }
-  #hud{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); font-size:32px; color:lime; font-family:monospace; pointer-events:none;}
+body { margin:0; overflow:hidden; background:#87ceeb; }
+#hud{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); font-size:32px; color:lime; font-family:monospace; pointer-events:none;}
 </style>
 </head>
 <body>
@@ -25,7 +25,7 @@ const dirLight = new THREE.DirectionalLight(0xffffff,0.8);
 dirLight.position.set(5,10,5);
 scene.add(dirLight);
 
-// ===== F-15箱ベース =====
+// ===== F-15 Group =====
 const jet = new THREE.Group();
 
 // 胴体
@@ -35,14 +35,21 @@ const body = new THREE.Mesh(
 );
 jet.add(body);
 
-// 主翼（斜め）
+// 主翼（三角＋円柱風）
+const wingShape = new THREE.Shape();
+wingShape.moveTo(0,0);
+wingShape.lineTo(1,0.15);
+wingShape.lineTo(1,-0.15);
+wingShape.lineTo(0,0);
+const extrudeSettings = { depth:1, bevelEnabled:false };
+const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
 const wing = new THREE.Mesh(
-  new THREE.BoxGeometry(3,0.05,1),
+  wingGeo,
   new THREE.MeshStandardMaterial({color:0x666666})
 );
-wing.position.y=-0.1;
 wing.rotation.z=Math.PI/20;
 wing.rotation.y=Math.PI/12;
+wing.position.set(0,-0.1,0);
 jet.add(wing);
 
 // 垂直尾翼
@@ -65,12 +72,12 @@ const horizTailL = new THREE.Mesh(
   new THREE.MeshStandardMaterial({color:0x555555})
 );
 horizTailL.position.set(-0.35,0,-1.1);
-horizTailL.rotation.z = -Math.PI/12;
+horizTailL.rotation.z=-Math.PI/12;
 jet.add(horizTailL);
 
 const horizTailR = horizTailL.clone();
 horizTailR.position.x=0.35;
-horizTailR.rotation.z = Math.PI/12;
+horizTailR.rotation.z=Math.PI/12;
 jet.add(horizTailR);
 
 // コックピット
@@ -138,7 +145,7 @@ window.addEventListener("keyup", e=>keys[e.key]=false);
 let baseSpeed = 0.25;
 let boostSpeed = 0.55;
 let rollTarget = 0;
-let cameraMode = 0; // 0:追従 1:後方俯瞰
+let cameraMode = 0; // 0=追従 1=後方俯瞰
 
 // カメラ切替
 window.addEventListener("keydown", e=>{
@@ -151,9 +158,9 @@ function animate(){
 
   const speed = keys["Shift"] ? boostSpeed : baseSpeed;
 
-  // ムーンウォークを弱めて画面内に表示
-  jet.position.z += 0.02; // 少し後ろに移動
-  jet.position.z -= speed; // 前進感とのバランス
+  // 少し後ろにムーンウォーク
+  jet.position.z += 0.02;
+  jet.position.z -= speed;
 
   // WASD操作
   if(keys["a"]){jet.position.x-=0.08; rollTarget=0.35;}
@@ -173,7 +180,7 @@ function animate(){
   // 弾前進
   bullets.forEach(b=>b.position.z-=1.2);
 
-  // 山スクロール
+  // 山スクロール（カメラ前方に合わせる）
   mountains.forEach(m=>{
     m.position.z += speed;
     if(m.position.z > jet.position.z + 10){
@@ -185,12 +192,12 @@ function animate(){
   // カメラ追従
   const camTarget = new THREE.Vector3();
   if(cameraMode===0){
-    camTarget.set(jet.position.x, jet.position.y+1.2, jet.position.z+7);
+    camTarget.set(jet.position.x, jet.position.y+2, jet.position.z+8); // 後ろ上方
   }else{
-    camTarget.set(jet.position.x, jet.position.y+5, jet.position.z+20);
+    camTarget.set(jet.position.x, jet.position.y+5, jet.position.z+20); // 高い視点
   }
   camera.position.lerp(camTarget,0.1);
-  camera.lookAt(jet.position.x, jet.position.y, jet.position.z + 5); // 機首方向
+  camera.lookAt(jet.position.x, jet.position.y, jet.position.z+2); // 機首方向
 
   renderer.render(scene,camera);
 }
@@ -206,3 +213,4 @@ window.addEventListener("resize", ()=>{
 </script>
 </body>
 </html>
+
