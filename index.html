@@ -1,69 +1,94 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Jet Sim</title>
+  <meta charset="UTF-8" />
+  <title>Jet Sim - F15 style</title>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; background: #000; }
   </style>
 </head>
 <body>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-  // === シーン ===
+  // ===== シーン =====
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
 
-  // === カメラ ===
+  // ===== カメラ =====
   const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
     0.1,
-    1000
+    2000
   );
-  camera.position.set(0, 2, 5);
 
-  // === レンダラー ===
-  const renderer = new THREE.WebGLRenderer();
+  // ===== レンダラー =====
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // === ライト ===
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(5, 10, 5);
-  scene.add(light);
+  // ===== ライト =====
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(5, 10, 5);
+  scene.add(dirLight);
 
-  // === 戦闘機 ===
-  const jet = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 0.3, 2),
+  // ===== F-15 っぽい機体 =====
+  const jet = new THREE.Group();
+
+  // 胴体
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 0.4, 3.2),
+    new THREE.MeshStandardMaterial({ color: 0x777777 })
+  );
+  jet.add(body);
+
+  // 主翼
+  const wing = new THREE.Mesh(
+    new THREE.BoxGeometry(3.2, 0.06, 1),
+    new THREE.MeshStandardMaterial({ color: 0x666666 })
+  );
+  wing.position.y = -0.1;
+  jet.add(wing);
+
+  // 垂直尾翼 左
+  const tailL = new THREE.Mesh(
+    new THREE.BoxGeometry(0.25, 0.8, 0.6),
     new THREE.MeshStandardMaterial({ color: 0x555555 })
   );
+  tailL.position.set(-0.35, 0.45, -1.3);
+  jet.add(tailL);
+
+  // 垂直尾翼 右
+  const tailR = tailL.clone();
+  tailR.position.x = 0.35;
+  jet.add(tailR);
+
   scene.add(jet);
 
-  // === 地面 ===
+  // ===== 地面 =====
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(200, 200),
-    new THREE.MeshStandardMaterial({ color: 0x228b22 })
+    new THREE.PlaneGeometry(1000, 1000),
+    new THREE.MeshStandardMaterial({ color: 0x2e8b57 })
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -1;
+  ground.position.y = -3;
   scene.add(ground);
 
-  // === 弾 ===
+  // ===== 弾 =====
   const bullets = [];
-
   function shoot() {
-    const bullet = new THREE.Mesh(
-      new THREE.SphereGeometry(0.1, 8, 8),
-      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    const b = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff3333 })
     );
-    bullet.position.copy(jet.position);
-    scene.add(bullet);
-    bullets.push(bullet);
+    b.position.copy(jet.position);
+    scene.add(b);
+    bullets.push(b);
   }
 
-  // === キー入力 ===
+  // ===== 入力 =====
   const keys = {};
   window.addEventListener("keydown", e => {
     keys[e.key] = true;
@@ -71,37 +96,61 @@
   });
   window.addEventListener("keyup", e => keys[e.key] = false);
 
-  // === アニメーション ===
+  // ===== 変数 =====
+  let baseSpeed = 0.25; // 通常速度
+  let boostSpeed = 0.55; // アフターバーナー
+  let rollTarget = 0;
+
+  // ===== アニメーション =====
   function animate() {
     requestAnimationFrame(animate);
 
-    // 常に前進
-    jet.position.z -= 0.05;
+    // スピード
+    const speed = keys["Shift"] ? boostSpeed : baseSpeed;
+    jet.position.z -= speed;
 
-    // 操作
-    if (keys["a"]) jet.position.x -= 0.05;
-    if (keys["d"]) jet.position.x += 0.05;
-    if (keys["w"]) jet.position.y += 0.05;
-    if (keys["s"]) jet.position.y -= 0.05;
+    // 操縦
+    if (keys["a"]) {
+      jet.position.x -= 0.08;
+      rollTarget = 0.35;
+    }
+    if (keys["d"]) {
+      jet.position.x += 0.08;
+      rollTarget = -0.35;
+    }
+    if (keys["w"]) jet.position.y += 0.06;
+    if (keys["s"]) jet.position.y -= 0.06;
 
-    // 弾を進める
-    bullets.forEach(b => b.position.z -= 0.2);
+    // 傾き（バンク）
+    jet.rotation.z += (rollTarget - jet.rotation.z) * 0.1;
+    rollTarget *= 0.9;
 
-    // カメラ追従
-    camera.position.lerp(
-      new THREE.Vector3(
-        jet.position.x,
-        jet.position.y + 2,
-        jet.position.z + 5
-      ),
-      0.1
+    // ふわっと揺れ
+    jet.position.y += Math.sin(Date.now() * 0.002) * 0.01;
+
+    // 弾移動
+    bullets.forEach(b => b.position.z -= 1.2);
+
+    // カメラ追従（ジェット後方）
+    const camTarget = new THREE.Vector3(
+      jet.position.x,
+      jet.position.y + 1.2,
+      jet.position.z + 9
     );
+    camera.position.lerp(camTarget, 0.1);
     camera.lookAt(jet.position);
 
     renderer.render(scene, camera);
   }
 
   animate();
+
+  // ===== リサイズ対応 =====
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 </script>
 
 </body>
