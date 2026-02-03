@@ -2,14 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Jet Sim - Box F15 Complete</title>
+<title>Jet Sim - F15 Visible Complete</title>
 <style>
-body { margin:0; overflow:hidden; background:#87ceeb; }
-#hud{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); font-size:32px; color:lime; font-family:monospace; pointer-events:none;}
+  body { margin:0; overflow:hidden; background:#87ceeb; }
+  #hud{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); font-size:32px; color:lime; font-family:monospace; pointer-events:none;}
 </style>
 </head>
 <body>
 <div id="hud">+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 const scene = new THREE.Scene();
@@ -72,7 +73,7 @@ horizTailR.position.x=0.35;
 horizTailR.rotation.z = Math.PI/12;
 jet.add(horizTailR);
 
-// コックピット（透明）
+// コックピット
 const cockpit = new THREE.Mesh(
   new THREE.CylinderGeometry(0.25,0.25,0.8,16),
   new THREE.MeshStandardMaterial({color:0x5555ff, transparent:true, opacity:0.5})
@@ -81,7 +82,7 @@ cockpit.rotation.z=Math.PI/2;
 cockpit.position.set(0,0.2,0.5);
 jet.add(cockpit);
 
-// エンジン 左右
+// エンジン
 const engineL = new THREE.Mesh(
   new THREE.CylinderGeometry(0.18,0.22,0.8,12),
   new THREE.MeshStandardMaterial({color:0x333333})
@@ -89,7 +90,6 @@ const engineL = new THREE.Mesh(
 engineL.rotation.x=Math.PI/2;
 engineL.position.set(-0.35,-0.05,-1.8);
 jet.add(engineL);
-
 const engineR = engineL.clone();
 engineR.position.x=0.35;
 jet.add(engineR);
@@ -105,7 +105,7 @@ ground.rotation.x=-Math.PI/2;
 ground.position.y=-3;
 scene.add(ground);
 
-// ===== 山スクロール =====
+// ===== 山 =====
 const mountains=[];
 for(let i=0;i<30;i++){
   const m=new THREE.Mesh(
@@ -138,7 +138,7 @@ window.addEventListener("keyup", e=>keys[e.key]=false);
 let baseSpeed = 0.25;
 let boostSpeed = 0.55;
 let rollTarget = 0;
-let cameraMode = 0; // 0=追従 1=後方俯瞰
+let cameraMode = 0; // 0:追従 1:後方俯瞰
 
 // カメラ切替
 window.addEventListener("keydown", e=>{
@@ -151,8 +151,8 @@ function animate(){
 
   const speed = keys["Shift"] ? boostSpeed : baseSpeed;
 
-  // F-15ムーンウォーク風（後ろに動く）
-  jet.position.z += 0.15; // 後ろ移動
+  // ムーンウォークを弱めて画面内に表示
+  jet.position.z += 0.02; // 少し後ろに移動
   jet.position.z -= speed; // 前進感とのバランス
 
   // WASD操作
@@ -170,7 +170,7 @@ function animate(){
   if(keys["s"]) jet.rotation.x = Math.min(jet.rotation.x + 0.02, 0.4);
   jet.rotation.x *= 0.95;
 
-  // 弾を前に進める
+  // 弾前進
   bullets.forEach(b=>b.position.z-=1.2);
 
   // 山スクロール
@@ -190,7 +190,7 @@ function animate(){
     camTarget.set(jet.position.x, jet.position.y+5, jet.position.z+20);
   }
   camera.position.lerp(camTarget,0.1);
-  camera.lookAt(jet.position.x, jet.position.y, jet.position.z + 10);
+  camera.lookAt(jet.position.x, jet.position.y, jet.position.z + 5); // 機首方向
 
   renderer.render(scene,camera);
 }
@@ -201,5 +201,8 @@ animate();
 window.addEventListener("resize", ()=>{
   camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.
-
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
