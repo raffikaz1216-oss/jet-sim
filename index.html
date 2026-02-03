@@ -1,30 +1,38 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>Jet Sim - F15 style</title>
-  <style>
-    body { margin:0; overflow:hidden; background:#87ceeb; }
-  </style>
+<meta charset="UTF-8">
+<title>F-15 Realistic Sim</title>
+<style>
+  body { margin:0; overflow:hidden; background:#87ceeb; }
+</style>
 </head>
 <body>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-/* ===== 基本 ===== */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
-const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 2000);
-const renderer = new THREE.WebGLRenderer({ antialias:true });
+/* ===== カメラ ===== */
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+
+/* ===== レンダラー ===== */
+const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-/* ===== 機体グループ ===== */
+/* ===== ライト ===== */
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(5,10,5);
+scene.add(dirLight);
+
+/* ===== F-15 グループ ===== */
 const jet = new THREE.Group();
 scene.add(jet);
 
-/* ===== 胴体（円柱＋先細り）===== */
+/* 胴体（円柱＋先細り） */
 const bodyMat = new THREE.MeshStandardMaterial({ color:0x777777 });
 
 const body = new THREE.Mesh(
@@ -34,47 +42,43 @@ const body = new THREE.Mesh(
 body.rotation.x = Math.PI / 2;
 jet.add(body);
 
-/* 機首 */
+/* 機首（コーン） */
 const nose = new THREE.Mesh(
   new THREE.ConeGeometry(0.6, 2, 24),
   bodyMat
 );
-nose.position.z = 4;
 nose.rotation.x = Math.PI / 2;
+nose.position.z = 4;
 jet.add(nose);
 
-/* ===== コックピット ===== */
-const canopy = new THREE.Mesh(
+/* コックピット */
+const cockpit = new THREE.Mesh(
   new THREE.CylinderGeometry(0.25, 0.35, 1.5, 16),
-  new THREE.MeshStandardMaterial({
-    color:0x99ccff,
-    transparent:true,
-    opacity:0.6
-  })
+  new THREE.MeshStandardMaterial({ color:0x99ccff, transparent:true, opacity:0.6 })
 );
-canopy.rotation.x = Math.PI / 2;
-canopy.position.set(0, 0.35, 2);
-jet.add(canopy);
+cockpit.rotation.x = Math.PI / 2;
+cockpit.position.set(0, 0.35, 2);
+jet.add(cockpit);
 
-/* ===== 主翼（三角形）===== */
-function wing(side=1) {
+/* 主翼（三角形） */
+function wing(side=1){
   const shape = new THREE.Shape();
   shape.moveTo(0,0);
-  shape.lineTo(3*side, -0.2);
+  shape.lineTo(3*side, -0.1);
   shape.lineTo(0, -1.5);
   shape.lineTo(0,0);
 
   const geo = new THREE.ShapeGeometry(shape);
   const mesh = new THREE.Mesh(geo, bodyMat);
-  mesh.position.set(0, 0, 0.5);
   mesh.rotation.x = -Math.PI/2;
+  mesh.position.z = 0.5;
   return mesh;
 }
 jet.add(wing(1));
 jet.add(wing(-1));
 
-/* ===== 水平尾翼 ===== */
-function tailWing(side=1){
+/* 水平尾翼 */
+function horizTail(side=1){
   const shape = new THREE.Shape();
   shape.moveTo(0,0);
   shape.lineTo(1.5*side, -0.1);
@@ -83,26 +87,26 @@ function tailWing(side=1){
 
   const geo = new THREE.ShapeGeometry(shape);
   const mesh = new THREE.Mesh(geo, bodyMat);
-  mesh.position.set(0, 0, -2.5);
   mesh.rotation.x = -Math.PI/2;
+  mesh.position.z = -2.5;
   return mesh;
 }
-jet.add(tailWing(1));
-jet.add(tailWing(-1));
+jet.add(horizTail(1));
+jet.add(horizTail(-1));
 
-/* ===== 垂直尾翼 ===== */
+/* 垂直尾翼 */
 const fin = new THREE.Mesh(
   new THREE.PlaneGeometry(1.2, 1.5),
   bodyMat
 );
-fin.position.set(0, 0.9, -2.3);
+fin.position.set(0,0.9,-2.3);
 fin.rotation.y = Math.PI;
 jet.add(fin);
 
-/* ===== エンジン ===== */
+/* エンジン */
 function engine(x){
   const e = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.25, 0.3, 2, 16),
+    new THREE.CylinderGeometry(0.25,0.3,2,16),
     new THREE.MeshStandardMaterial({ color:0x444444 })
   );
   e.rotation.x = Math.PI/2;
@@ -112,13 +116,30 @@ function engine(x){
 jet.add(engine(0.35));
 jet.add(engine(-0.35));
 
-/* ===== ライト ===== */
-scene.add(new THREE.DirectionalLight(0xffffff, 1).position.set(5,10,5));
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+/* ===== 地面 ===== */
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(1000,1000),
+  new THREE.MeshStandardMaterial({ color:0x2e8b57 })
+);
+ground.rotation.x = -Math.PI/2;
+ground.position.y = -3;
+scene.add(ground);
 
-/* ===== カメラ（後方追従）===== */
+/* ===== 山 ===== */
+const mountains=[];
+for(let i=0;i<30;i++){
+  const m = new THREE.Mesh(
+    new THREE.ConeGeometry(5,10,6),
+    new THREE.MeshStandardMaterial({ color:0x556b2f })
+  );
+  m.position.set((Math.random()-0.5)*100, -3, -i*40);
+  scene.add(m);
+  mountains.push(m);
+}
+
+/* ===== カメラ後方追従 ===== */
 function updateCamera(){
-  const offset = new THREE.Vector3(0, 2, -8);
+  const offset = new THREE.Vector3(0,2,-8);
   offset.applyQuaternion(jet.quaternion);
   camera.position.copy(jet.position).add(offset);
   camera.lookAt(jet.position);
@@ -128,14 +149,23 @@ function updateCamera(){
 function animate(){
   requestAnimationFrame(animate);
 
-  jet.position.z += 0.1;   // 前進
-  updateCamera();
+  jet.position.z += 0.2; // 前進
 
+  // 山スクロール（前方方向）
+  mountains.forEach(m=>{
+    m.position.z += 0.2;
+    if(m.position.z > jet.position.z + 10){
+      m.position.z -= 1200;
+      m.position.x = (Math.random()-0.5)*100;
+    }
+  });
+
+  updateCamera();
   renderer.render(scene, camera);
 }
 animate();
 
-/* ===== リサイズ ===== */
+/* ===== リサイズ対応 ===== */
 window.addEventListener('resize', ()=>{
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
